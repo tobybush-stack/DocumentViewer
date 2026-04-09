@@ -1,0 +1,44 @@
+import { useParams } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { supabase } from '../lib/supabase';
+import { Document, Page } from 'react-pdf';
+
+function Viewer() {
+  // 1. Grab the fileName from the URL (e.g., /Viewer/Sample.pdf)
+  const { fileName } = useParams<{ fileName: string }>();
+  const [fileUrl, setFileUrl] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function getDocumentUrl() {
+      if (!fileName) return;
+      
+      setLoading(true);
+      // 2. Ask Supabase for the actual public link to this specific file
+      const { data } = supabase.storage
+        .from('pdfs')
+        .getPublicUrl(decodeURIComponent(fileName));
+
+      if (data?.publicUrl) {
+        setFileUrl(data.publicUrl);
+      }
+      setLoading(false);
+    }
+
+    getDocumentUrl();
+  }, [fileName]); // Re-run if the user clicks a different doc
+
+  if (loading) return <p>Loading document link...</p>;
+  if (!fileUrl) return <p>No Document Selected or File Not Found.</p>;
+
+  return (
+    <div>
+      <Document file={fileUrl}>
+        <Page pageNumber={1} />
+      </Document>
+    </div>
+  );
+}
+
+export default Viewer
+
